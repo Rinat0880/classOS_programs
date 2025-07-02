@@ -220,6 +220,11 @@ func (m *Manager) downloadWhitelist() (*Whitelist, error) {
 }
 
 func (m *Manager) createDefaultWhitelist() {
+	username := os.Getenv("USERNAME")
+	if username == "" {
+		username = "Public" 
+	}
+
 	m.whitelist = &Whitelist{
 		Version:   "1.0.0-default",
 		UpdatedAt: time.Now(),
@@ -246,13 +251,15 @@ func (m *Manager) createDefaultWhitelist() {
 			
 			"C:\\Program Files\\Windows Defender\\*",
 			"C:\\ProgramData\\Microsoft\\Windows Defender\\*",
+
+			fmt.Sprintf("C:\\Users\\%s\\AppData\\Roaming\\Telegram Desktop\\*", username),
 		},
 	}
 
 	logger.Info("Создан базовый whitelist с %d элементами", len(m.whitelist.Items))
 
 	if err := m.saveToCache(); err != nil {
-		logger.Warn("Не удалось сохранить базовый whitelist: %v", err)
+		logger.Warn("Неудалось сохранить базовый whitelist: %v", err)
 	}
 }
 
@@ -407,7 +414,6 @@ func (m *Manager) ValidateChecksum(path string) bool {
 		return true 
 	}
 
-	// Вычисляем MD5 хеш файла
 	actualHash, err := m.calculateMD5(path)
 	if err != nil {
 		logger.Warn("Ошибка вычисления хеша для %s: %v", path, err)
