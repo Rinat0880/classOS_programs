@@ -27,6 +27,7 @@ type Win32_Process struct {
 	ProcessId      uint32
 	Name           string
 	ExecutablePath *string
+	SessionId      uint32 `json:"SessionId"`
 }
 
 func NewWindowsMonitor(callback ProcessCallback) *WindowsMonitor {
@@ -95,7 +96,9 @@ func (m *WindowsMonitor) startPeriodicScanning() {
 
 func (m *WindowsMonitor) scanExistingProcesses() error {
 	var processes []Win32_Process
-	query := "SELECT ProcessId, Name, ExecutablePath FROM Win32_Process"
+	userProcesses := make([]Win32_Process, 0)
+
+	query := "SELECT ProcessId, Name, ExecutablePath, SessionId FROM Win32_Process"
 
 	if err := wmi.Query(query, &processes); err != nil {
 		return fmt.Errorf("ошибка получения списка процессов: %v", err)
@@ -107,12 +110,20 @@ func (m *WindowsMonitor) scanExistingProcesses() error {
 		m.knownPIDs[process.ProcessId] = true
 	}
 
+	for _, process := range processes {
+		if process.SessionId != 0 {
+			fmt.Println(process)
+			userProcesses = append(userProcesses, process)
+		}
+	}
+	logger.Info("Найдено %d пользовательских процессов", len(userProcesses))
+
 	return nil
 }
 
 func (m *WindowsMonitor) scanForNewProcesses() {
 	var processes []Win32_Process
-	query := "SELECT ProcessId, Name, ExecutablePath FROM Win32_Process"
+	query := "SELECT ProcessId, Name, ExecutablePath, SessionId FROM Win32_Process"
 
 	if err := wmi.Query(query, &processes); err != nil {
 		logger.Error("Ошибка сканирования процессов: %v", err)
@@ -322,7 +333,7 @@ func isDryRunMode() bool {
 
 func (m *WindowsMonitor) GetRunningProcesses() ([]ProcessInfo, error) {
 	var processes []Win32_Process
-	query := "SELECT ProcessId, Name, ExecutablePath FROM Win32_Process"
+	query := "SELECT ProcessId, Name, ExecutablePath, SessionId FROM Win32_Process"
 
 	if err := wmi.Query(query, &processes); err != nil {
 		return nil, fmt.Errorf("ошибка получения списка процессов: %v", err)
