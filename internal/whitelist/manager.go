@@ -251,8 +251,10 @@ func (m *Manager) createDefaultWhitelist() {
 			
 			"C:\\Program Files\\Windows Defender\\*",
 			"C:\\ProgramData\\Microsoft\\Windows Defender\\*",
+			"C:\\ProgramData\\SchoolAgent\\logs\\*",
 
 			fmt.Sprintf("C:\\Users\\%s\\AppData\\Roaming\\Telegram Desktop\\*", username),
+			fmt.Sprintf("C:\\Users\\%s\\AppData\\Local\\Microsoft VS Code\\*", username),
 		},
 	}
 
