@@ -87,9 +87,17 @@ namespace CustomShell
             foreach (var kvp in _windowButtons)
             {
                 bool isActive = kvp.Key == _activeWindowHandle;
-                kvp.Value.Background = isActive
-                    ? new SolidColorBrush(Color.FromArgb(80, 255, 255, 255))
-                    : Brushes.Transparent;
+
+                if (isActive)
+                {
+                    kvp.Value.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 100, 150, 255));
+                    kvp.Value.BorderThickness = new Thickness(0, 0, 0, 2);
+                }
+                else
+                {
+                    kvp.Value.BorderBrush = Brushes.Transparent;
+                    kvp.Value.BorderThickness = new Thickness(0);
+                }
             }
         }
 
@@ -171,7 +179,7 @@ namespace CustomShell
             try
             {
                 double dpiScale = GetDpiScale();
-                double adjustedHeight = 52 * dpiScale;
+                double adjustedHeight = 48 * dpiScale;
 
                 //IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
                 //ShowWindow(taskbar, SW_HIDE);
@@ -379,30 +387,21 @@ namespace CustomShell
 
             var icon = new Image
             {
-                Width = 20,
-                Height = 20,
-                Margin = new Thickness(0, 0, 8, 0),
+                Width = 24,
+                Height = 24,
                 Source = GetWindowIcon(window)
-            };
-
-            var textBlock = new TextBlock
-            {
-                Text = window.Title,
-                VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis
-            };
-
-            var panel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Children = { icon, textBlock }
             };
 
             var button = new Button
             {
-                Content = panel,
+                Content = icon,
                 Style = FindResource("WindowButtonStyle") as Style,
-                Tag = window
+                Tag = window,
+                Width = 40,
+                Height = 40,
+                Padding = new Thickness(0),
+                ToolTip = window.Title,
+                Margin = new Thickness(6,0,0,0)
             };
 
             button.Click += (s, e) =>
@@ -427,10 +426,7 @@ namespace CustomShell
                     {
                         if (_windowButtons.TryGetValue(window.Handle, out var btn))
                         {
-                            if (btn.Content is StackPanel sp && sp.Children.Count > 1 && sp.Children[1] is TextBlock tb)
-                            {
-                                tb.Text = window.Title;
-                            }
+                            btn.ToolTip = window.Title;
                         }
                     });
                 }
@@ -438,6 +434,7 @@ namespace CustomShell
 
             UpdateButtonStates();
         }
+
 
         #region Icon Extraction
 
