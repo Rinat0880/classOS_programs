@@ -70,8 +70,8 @@
                                 Height="40"
                                 Click="StartButton_Click"
                                 ToolTip="Пуск">
-							<Image Source="/CustomShell;component/icons/icon-windows.png"  Width="20" Height="20"/>
-						</Button>
+                            <Image Source="icons/icon-windows.png" Width="32" Height="32" Stretch="Uniform"/>
+                        </Button>
 
 						<!-- панель открытых окон -->
 						<ScrollViewer HorizontalScrollBarVisibility="Auto"
