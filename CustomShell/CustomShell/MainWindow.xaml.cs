@@ -87,17 +87,7 @@ namespace CustomShell
             foreach (var kvp in _windowButtons)
             {
                 bool isActive = kvp.Key == _activeWindowHandle;
-
-                if (isActive)
-                {
-                    kvp.Value.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 100, 150, 255));
-                    kvp.Value.BorderThickness = new Thickness(0, 0, 0, 2);
-                }
-                else
-                {
-                    kvp.Value.BorderBrush = Brushes.Transparent;
-                    kvp.Value.BorderThickness = new Thickness(0);
-                }
+                ButtonHelper.SetIsActiveWindow(kvp.Value, isActive);
             }
         }
 
@@ -574,11 +564,31 @@ namespace CustomShell
             [DllImport("user32.dll")]
             private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+            [DllImport("user32.dll")]
+            private static extern bool IsIconic(IntPtr hWnd);
+
+            [DllImport("user32.dll")]
+            private static extern bool IsZoomed(IntPtr hWnd);
+
             private const int SW_RESTORE = 9;
+            private const int SW_SHOW = 5;
+            private const int SW_MAXIMIZE = 3;
 
             public static void BringToFront(IntPtr handle)
             {
-                ShowWindow(handle, SW_RESTORE);
+                if (IsIconic(handle))
+                {
+                    ShowWindow(handle, SW_RESTORE);
+                }
+                else if (IsZoomed(handle))
+                {
+                    ShowWindow(handle, SW_SHOW);
+                }
+                else
+                {
+                    ShowWindow(handle, SW_SHOW);
+                }
+
                 SetForegroundWindow(handle);
             }
         }
@@ -613,6 +623,26 @@ namespace CustomShell
             ShowSystemTaskbar();
 
             base.OnClosing(e);
+        }
+    }
+
+    public static class ButtonHelper
+    {
+        public static readonly DependencyProperty IsActiveWindowProperty =
+            DependencyProperty.RegisterAttached(
+                "IsActiveWindow",
+                typeof(bool),
+                typeof(ButtonHelper),
+                new PropertyMetadata(false));
+
+        public static bool GetIsActiveWindow(DependencyObject obj)
+        {
+            return (bool)obj.GetValue(IsActiveWindowProperty);
+        }
+
+        public static void SetIsActiveWindow(DependencyObject obj, bool value)
+        {
+            obj.SetValue(IsActiveWindowProperty, value);
         }
     }
 }
