@@ -10,6 +10,16 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="icons\icon-windows.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Resource Include="icons\icon-windows.png">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Resource>
+	</ItemGroup>
+
+	<ItemGroup>
 	  <PackageReference Include="ManagedShell" Version="0.0.330" />
 	</ItemGroup>
 
