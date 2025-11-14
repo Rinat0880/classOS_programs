@@ -10,6 +10,7 @@ using System.Windows.Interop;
 using System.Windows.Threading;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
+using LanguageManager = CustomShell.controls.LanguageManager;
 
 namespace CustomShell
 {
@@ -24,8 +25,9 @@ namespace CustomShell
         public MainWindow()
         {
             InitializeComponent();
-            _windowButtons = new Dictionary<IntPtr, Button>();
+            LanguageManager.Init(LangText);
 
+            _windowButtons = new Dictionary<IntPtr, Button>();
             InitializeClock();
             InitializeStartMenu();
             Loaded += MainWindow_Loaded;
@@ -508,15 +510,7 @@ namespace CustomShell
 
         private void LanguageButton_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "ms-settings:regionlanguage",
-                    UseShellExecute = true
-                });
-            }
-            catch { }
+            LanguageManager.ShowSystemLanguagePopup();
         }
 
         private void LogoutButton_Click(object sender, RoutedEventArgs e)

@@ -32,7 +32,7 @@
 			</Setter>
 			<Style.Triggers>
 				<Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1AFFFFFF"/>
+                    <Setter Property="Background" Value="#292929"/>
                 </Trigger>
 				<Trigger Property="IsPressed" Value="True">
 					<Setter Property="Background" Value="#60FFFFFF"/>
@@ -88,8 +88,8 @@
 
 	<Grid>
 		<!-- Панель задач -->
-		<Border Background="#FF1F1F1F">
-			<Border BorderBrush="#80FFFFFF"
+		<Border Background="#1C1C1C">
+			<Border BorderBrush="#404040"
                     BorderThickness="0,0.5,0,0">
 				<Grid>
 					<Grid.ColumnDefinitions>
@@ -131,11 +131,7 @@
                                 Width="32"
                                 Height="40"
                                 ToolTip="Показать скрытые значки">
-							<Path Fill="White"
-                                  Data="M7,15 L12,10 L17,15"
-                                  Stretch="Uniform"
-                                  Width="12"
-                                  Height="12"/>
+							<Image Source="icons/up_lang.png" Width="16" Height="16" Stretch="Uniform"/>
 						</Button>
 
 						<!-- язык -->
@@ -143,26 +139,32 @@
                                 Style="{StaticResource UnifiedTaskbarButtonStyle}"
                                 Width="40"
                                 Height="40"
-                                Content="RU"
-                                FontSize="12"
                                 Click="LanguageButton_Click"
-                                ToolTip="Язык ввода"/>
+                                ToolTip="Язык ввода">
+							<StackPanel HorizontalAlignment="Center">
+							    <TextBlock x:Name="LangText"
+		                                Text="ENG"
+		                                FontSize="11"
+		                                HorizontalAlignment="Center"
+		                                Opacity="1.2"/>
+							</StackPanel>
+						</Button>
 
 						<!-- часы и дата -->
 						<Button x:Name="ClockButton"
                                 Style="{StaticResource UnifiedTaskbarButtonStyle}"
-                                Width="100"
+                                Width="80"
                                 Height="40"
                                 Click="ClockButton_Click"
                                 Padding="4">
-							<StackPanel HorizontalAlignment="Center">
+							<StackPanel HorizontalAlignment="Right">
 								<TextBlock x:Name="TimeText"
                                          Text="12:00"
-                                         FontSize="11"
-                                         HorizontalAlignment="Center"/>
+                                         FontSize="12"
+                                         HorizontalAlignment="Right"/>
 								<TextBlock x:Name="DateText"
                                          Text="01.01.2025"
-                                         FontSize="9"
+                                         FontSize="12"
                                          HorizontalAlignment="Center"
                                          Opacity="0.8"/>
 							</StackPanel>
