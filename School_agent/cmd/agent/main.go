@@ -22,7 +22,7 @@ func main() {
 	log.Println("Service Starting...")
 	
 	// Пытаемся узнать реального пользователя (повторяем попытки, т.к. при старте ПК пользователь может еще не войти)
-	go monitorActiveUser()
+	monitorActiveUser()
 	// ===========================================
 
 	svcConfig := &service.Config{
@@ -54,7 +54,7 @@ func main() {
 // Функция мониторинга (запускается в горутине)
 func monitorActiveUser() {
 	// Даем системе прогрузиться
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	user, err := sysuser.GetActiveUser()
 	if err != nil {

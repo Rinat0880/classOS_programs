@@ -2,6 +2,7 @@ package sysuser
 
 import (
 	"fmt"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -11,7 +12,7 @@ var (
 	wtsapi32 = windows.NewLazySystemDLL("wtsapi32.dll")
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 
-	procWTSGetActiveConsoleSessionId = wtsapi32.NewProc("WTSGetActiveConsoleSessionId")
+	procWTSGetActiveConsoleSessionId = kernel32.NewProc("WTSGetActiveConsoleSessionId")
 	procWTSQuerySessionInformationW  = wtsapi32.NewProc("WTSQuerySessionInformationW")
 	procWTSFreeMemory                = wtsapi32.NewProc("WTSFreeMemory")
 )
@@ -27,7 +28,8 @@ const (
 // GetActiveUser возвращает "DOMAIN\User" или просто "User" того, кто сейчас залогинен физически
 func GetActiveUser() (string, error) {
 	// 1. Получаем ID сессии, которая сейчас на экране (Active Console)
-	sessionID, _, _ := procWTSGetActiveConsoleSessionId.Call()
+	r0, _, _ := syscall.SyscallN(procWTSGetActiveConsoleSessionId.Addr())
+	sessionID := uint32(r0)
 	if sessionID == 0xFFFFFFFF {
 		return "", fmt.Errorf("no active console session")
 	}
