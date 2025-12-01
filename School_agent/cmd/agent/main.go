@@ -1,191 +1,67 @@
-	package main
+package main
 
-	import (
-		"context"
-		"fmt"
-		"log"
-		"os"
-		"os/signal"
-		"syscall"
-		"time"
+import (
+	"log"
+	"os"
+	"school_agent/internal/sysuser" 
+	"school_agent/internal/winsvc"
+	"time"
 
-		"school_agent/internal/config"
-		"school_agent/internal/logger"
-		"school_agent/internal/monitor"
-		"school_agent/internal/whitelist"
+	"github.com/kardianos/service"
+)
 
-		"golang.org/x/sys/windows/svc"
-	)
-
-	type service struct {
-		ctx    context.Context
-		cancel context.CancelFunc
-		cfg    *config.Config
-		wlm    *whitelist.Manager
-		mon    *monitor.WindowsMonitor
+func main() {
+	// 1. Логгер сервиса (service.log)
+	logFile, err := os.OpenFile("C:\\ProgramData\\SchoolAgent\\service.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err == nil {
+		log.SetOutput(logFile)
 	}
 
-	func main() {
-		inService, err := svc.IsWindowsService()
+	// === НОВАЯ ЛОГИКА: ОПРЕДЕЛЕНИЕ ROOT USER ===
+	log.Println("------------------------------------------------")
+	log.Println("Service Starting...")
+	
+	// Пытаемся узнать реального пользователя (повторяем попытки, т.к. при старте ПК пользователь может еще не войти)
+	monitorActiveUser()
+	// ===========================================
+
+	svcConfig := &service.Config{
+		Name:        "SchoolAgent",
+		DisplayName: "School System Agent",
+		Description: "Monitoring Agent",
+	}
+
+	prg := &winsvc.ServiceProgram{}
+	s, err := service.New(prg, svcConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(os.Args) > 1 {
+		err = service.Control(s, os.Args[1])
 		if err != nil {
-			log.Fatalf("Ошибка проверки режима службы: %v", err)
+			log.Fatal(err)
 		}
-
-		if inService {
-			runService()
-		} else {
-			runConsole()
-		}
+		return
 	}
 
-	func runService() {
-		err := svc.Run("SchoolAgent", &service{})
-		if err != nil {
-			log.Fatalf("Ошибка запуска службы: %v", err)
-		}
+	err = s.Run()
+	if err != nil {
+		log.Fatal(err)
 	}
+}
 
-	func runConsole() {
-		fmt.Println("Запуск School Agent в консольном режиме...")
-		
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+// Функция мониторинга (запускается в горутине)
+func monitorActiveUser() {
+	// Даем системе прогрузиться
+	time.Sleep(3 * time.Second)
 
-		agent := &service{
-			ctx:    ctx,
-			cancel: cancel,
-		}
-
-		if err := agent.start(); err != nil {
-			log.Fatalf("Ошибка запуска агента: %v", err)
-		}
-
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-		<-sigChan
-
-		fmt.Println("Получен сигнал остановки...")
-		agent.stop()
+	user, err := sysuser.GetActiveUser()
+	if err != nil {
+		log.Printf("[SYSTEM CHECK] Could not detect active user yet: %v", err)
+	} else if user == "" {
+		log.Printf("[SYSTEM CHECK] No user currently logged in on console.")
+	} else {
+		log.Printf("[SYSTEM CHECK] ACTIVE ROOT USER DETECTED: %s", user)
 	}
-
-	func (s *service) Execute(args []string, r <-chan svc.ChangeRequest, changes chan<- svc.Status) (bool, uint32) {
-		const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown | svc.AcceptPauseAndContinue
-		changes <- svc.Status{State: svc.StartPending}
-
-		s.ctx, s.cancel = context.WithCancel(context.Background())
-
-		if err := s.start(); err != nil {
-			changes <- svc.Status{State: svc.Stopped}
-			return true, 1
-		}
-
-		changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
-
-	loop:
-		for {
-			select {
-			case c := <-r:
-				switch c.Cmd {
-				case svc.Interrogate:
-					changes <- c.CurrentStatus
-				case svc.Stop, svc.Shutdown:
-					break loop
-				case svc.Pause:
-					changes <- svc.Status{State: svc.Paused, Accepts: cmdsAccepted}
-				case svc.Continue:
-					changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
-				default:
-					log.Printf("Неожиданная команда службы: %d", c.Cmd)
-				}
-			case <-s.ctx.Done():
-				break loop
-			}
-		}
-
-		changes <- svc.Status{State: svc.StopPending}
-		s.stop()
-		changes <- svc.Status{State: svc.Stopped}
-		return false, 0
-	}
-
-	func (s *service) start() error {
-		cfg, err := config.LoadConfig()
-		if err != nil {
-			return fmt.Errorf("ошибка загрузки конфигурации: %v", err)
-		}
-		s.cfg = cfg
-
-		if err := logger.Initialize(cfg.LogPath, cfg.LogLevel); err != nil {
-			return fmt.Errorf("ошибка инициализации логгера: %v", err)
-		}
-
-		logger.Info("Запуск School Agent...")
-
-		s.wlm = whitelist.NewManager(cfg.WhitelistPath, cfg.WhitelistURL)
-		if err := s.wlm.Initialize(); err != nil {
-			logger.Error("Ошибка инициализации whitelist: %v", err)
-			return err
-		}
-
-		s.mon = monitor.NewWindowsMonitor(s.processCallback)
-		
-		if err := s.mon.Start(s.ctx); err != nil {
-			logger.Error("Ошибка запуска мониторинга: %v", err)
-			return err
-		}
-
-		go s.whitelistUpdateLoop()
-
-		logger.Info("School Agent успешно запущен")
-		return nil
-	}
-
-	func (s *service) stop() {
-		logger.Info("Остановка School Agent...")
-		
-		if s.cancel != nil {
-			s.cancel()
-		}
-
-		if s.mon != nil {
-			s.mon.Stop()
-		}
-
-		logger.Info("School Agent остановлен")
-	}
-
-	func (s *service) processCallback(pid uint32, path string) {
-		logger.Debug("Обнаружен новый процесс: PID=%d, Path=%s", pid, path)
-
-		if s.wlm.IsAllowed(path) {
-			logger.Debug("Процесс разрешен: %s", path)
-			return
-		}
-
-		logger.Warn("Процесс НЕ в whitelist, завершаем: PID=%d, Path=%s", pid, path)
-		
-		if err := s.mon.KillProcess(pid); err != nil {
-			logger.Error("Ошибка завершения процесса PID=%d: %v", pid, err)
-		} else {
-			logger.Info("Процесс успешно завершен: PID=%d, Path=%s", pid, path)
-		}
-	}
-
-	func (s *service) whitelistUpdateLoop() {
-		ticker := time.NewTicker(time.Duration(s.cfg.UpdateInterval) * time.Minute)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				logger.Debug("Обновление whitelist...")
-				if err := s.wlm.Update(); err != nil {
-					logger.Error("Ошибка обновления whitelist: %v", err)
-				} else {
-					logger.Info("Whitelist успешно обновлен")
-				}
-			case <-s.ctx.Done():
-				return
-			}
-		}
-	}
+}
