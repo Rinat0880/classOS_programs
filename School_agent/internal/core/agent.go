@@ -42,12 +42,10 @@ func New() *Agent {
 }
 
 func (a *Agent) Run() {
-	// Запуск подсистем
 	a.logMgr.Start()
 	a.wsClient.Start(a.stopChan)
 	a.ipcServer.Start()
 
-	// Таймеры
 	hbTicker := time.NewTicker(30 * time.Second)
 	uploadTicker := time.NewTicker(1 * time.Hour)
 

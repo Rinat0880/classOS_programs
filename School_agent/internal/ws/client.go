@@ -16,7 +16,7 @@ type Client struct {
 	conn     *websocket.Conn
 	mu       sync.Mutex
 	
-	// Канал для передачи команд в Core
+
 	CommandChan chan models.WSCommand
 }
 
@@ -49,17 +49,15 @@ func (c *Client) connectLoop(stopChan chan struct{}) {
 			c.conn = conn
 			c.mu.Unlock()
 
-			// Auth
 			c.SendJSON(map[string]string{"type": "auth", "token": c.token})
 			
 			log.Println("WS Connected")
 
-			// Чтение сообщений
 			for {
 				var cmd models.WSCommand
 				err := conn.ReadJSON(&cmd)
 				if err != nil {
-					break // Разрыв
+					break 
 				}
 				c.CommandChan <- cmd
 			}
