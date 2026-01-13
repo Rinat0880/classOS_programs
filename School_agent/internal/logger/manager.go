@@ -9,14 +9,16 @@ import (
 )
 
 type Manager struct {
-	logDir string
-	queue  chan models.LogEntry
+	logDir   string
+	hostname string
+	queue    chan models.LogEntry
 }
 
-func New(logDir string) *Manager {
+func New(logDir, hostname string) *Manager {
 	return &Manager{
-		logDir: logDir,
-		queue:  make(chan models.LogEntry, 100),
+		logDir:   logDir,
+		hostname: hostname,
+		queue:    make(chan models.LogEntry, 100),
 	}
 }
 
@@ -34,11 +36,12 @@ func (m *Manager) Add(user, lType, prog, action string) {
 		user = "system"
 	}
 	m.queue <- models.LogEntry{
-		User:      user,
-		Timestamp: time.Now(),
-		LogType:   lType,
-		Program:   prog,
-		Action:    action,
+		Username:   user,
+		DeviceName: m.hostname,
+		Timestamp:  time.Now(),
+		LogType:    lType,
+		Program:    prog,
+		Action:     action,
 	}
 }
 
