@@ -3,11 +3,12 @@ package models
 import "time"
 
 type LogEntry struct {
-	User      string    `json:"user"`
-	Timestamp time.Time `json:"timestamp"`
-	LogType   string    `json:"log_type"` 
-	Program   string    `json:"program"`
-	Action    string    `json:"action"`
+	Username   string    `json:"username"`
+	DeviceName string    `json:"device_name"`
+	Timestamp  time.Time `json:"timestamp"`
+	LogType    string    `json:"log_type"` 
+	Program    string    `json:"program"`
+	Action     string    `json:"action"`
 }
 
 type IPCMessage struct {
